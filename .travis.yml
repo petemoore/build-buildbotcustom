@@ -12,7 +12,6 @@ install:
   - pip install mock
   - pip install pyopenssl
   - pip install service-identity
-  - pip install trial
   - hg clone -u production-0.8 -b production-0.8 http://hg.mozilla.org/build/buildbot ~/buildbot
   - cd ~/buildbot/master
   - python setup.py install
