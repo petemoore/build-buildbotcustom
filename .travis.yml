@@ -16,7 +16,6 @@ install:
   - pip install MozillaPulse==0.80
   - pip install MySQL-python==1.2.3
   - pip install SQLAlchemy==0.6.4
-  - pip install Twisted==10.1.0
   - pip install amqplib==0.6.1
   - pip install anyjson==0.3
   - pip install argparse==1.1
@@ -33,6 +32,7 @@ install:
   - python setup.py install
   - git clone --depth 50 --branch=master git://github.com/mozilla/build-tools.git ~/tools
   - export PYTHONPATH=~/"tools/lib/python:${TRAVIS_BUILD_DIR%/*}"
+  - pip freeze
 
 script:
   - mv "${TRAVIS_BUILD_DIR}" "${TRAVIS_BUILD_DIR%/*}/buildbotcustom" || true
