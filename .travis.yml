@@ -3,14 +3,10 @@ python:
   - "2.7"
 
 install:
-  - pip install pycrypto
   - pip install twisted
-  - pip install Jinja2
   - pip install argparse
-  - pip install pyasn1
   - pip install pep8
   - pip install mock
-  - pip install pyopenssl
   - pip install service-identity
   - pip install Jinja2==2.5.5
   - pip install distribute==0.6.14
