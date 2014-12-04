@@ -3,13 +3,13 @@ python:
   - "2.7"
 
 install:
-  - pip install twisted
-  - pip install argparse
-  - pip install pep8
-  - pip install mock
   - pip install service-identity
   - pip install Jinja2==2.5.5
+  - pip install Twisted==10.1.0
+  - pip install argparse==1.1
   - pip install distribute==0.6.14
+  - pip install mock==1.0.1
+  - pip install pep8==1.5.7
   - pip install pyOpenSSL==0.10
   - pip install pyasn1==0.0.11a
   - pip install pycrypto==2.3
