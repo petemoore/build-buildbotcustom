@@ -24,7 +24,7 @@ install:
 
 script:
   - mv "${TRAVIS_BUILD_DIR}" "${TRAVIS_BUILD_DIR%/*}/buildbotcustom" || true
-  - trial --reporter=verbose $(find "${TRAVIS_BUILD_DIR%/*}/buildbotcustom/test" -name '*.py')
+  - find "${TRAVIS_BUILD_DIR%/*}/buildbotcustom/test" -name '*.py' -print0 | xargs -0 -n 1 trial --reporter=verbose
 
 # currently cannot customise per user fork, see:
 # https://github.com/travis-ci/travis-ci/issues/1094
