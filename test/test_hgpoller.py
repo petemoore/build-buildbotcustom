@@ -9,8 +9,7 @@ if not hasattr(json.decoder, 'JSONDecodeError'):
 else:
     JSONDecodeError = json.JSONDecodeError
 
-from buildbotcustom.changes.hgpoller import BasePoller, BaseHgPoller, HgPoller, \
-    HgLocalePoller, HgAllLocalesPoller, _parse_changes
+from buildbotcustom.changes import hgpoller
 
 
 class VerySimpleHTTPRequestHandler(BaseHTTPRequestHandler):
@@ -62,14 +61,14 @@ class TestHTTPServer(object):
 class UrlCreation(unittest.TestCase):
     def testSimpleUrl(self):
         correctUrl = 'https://hg.mozilla.org/mozilla-central/json-pushes?full=1'
-        poller = BaseHgPoller(
+        poller = hgpoller.BaseHgPoller(
             hgURL='https://hg.mozilla.org', branch='mozilla-central')
         url = poller._make_url()
         self.failUnlessEqual(url, correctUrl)
 
     def testUrlWithLastChangeset(self):
         correctUrl = 'https://hg.mozilla.org/mozilla-central/json-pushes?full=1&fromchange=123456'
-        poller = BaseHgPoller(
+        poller = hgpoller.BaseHgPoller(
             hgURL='https://hg.mozilla.org', branch='mozilla-central')
         poller.lastChangeset = '123456'
         url = poller._make_url()
@@ -77,7 +76,7 @@ class UrlCreation(unittest.TestCase):
 
     def testTipsOnlyUrl(self):
         correctUrl = 'https://hg.mozilla.org/mozilla-central/json-pushes?full=1&tipsonly=1'
-        poller = BaseHgPoller(
+        poller = hgpoller.BaseHgPoller(
             hgURL='https://hg.mozilla.org', branch='mozilla-central',
             tipsOnly=True)
         url = poller._make_url()
@@ -89,7 +88,7 @@ class UrlCreation(unittest.TestCase):
             'https://hg.mozilla.org/releases/mozilla-1.9.1/json-pushes?full=1&fromchange=123456&tipsonly=1',
             'https://hg.mozilla.org/releases/mozilla-1.9.1/json-pushes?full=1&tipsonly=1&fromchange=123456'
         ]
-        poller = BaseHgPoller(hgURL='https://hg.mozilla.org',
+        poller = hgpoller.BaseHgPoller(hgURL='https://hg.mozilla.org',
                               branch='releases/mozilla-1.9.1', tipsOnly=True)
         poller.lastChangeset = '123456'
         url = poller._make_url()
@@ -97,7 +96,7 @@ class UrlCreation(unittest.TestCase):
 
     def testOverrideUrl(self):
         correctUrl = 'https://hg.mozilla.org/other_repo/json-pushes?full=1&fromchange=123456'
-        poller = BaseHgPoller(
+        poller = hgpoller.BaseHgPoller(
             hgURL='https://hg.mozilla.org', branch='mozilla-central',
             pushlogUrlOverride='https://hg.mozilla.org/other_repo/json-pushes?full=1')
         poller.lastChangeset = '123456'
@@ -106,7 +105,7 @@ class UrlCreation(unittest.TestCase):
 
     def testUrlWithUnicodeLastChangeset(self):
         correctUrl = 'https://hg.mozilla.org/mozilla-central/json-pushes?full=1&fromchange=123456'
-        poller = BaseHgPoller(
+        poller = hgpoller.BaseHgPoller(
             hgURL='https://hg.mozilla.org', branch='mozilla-central')
         poller.lastChangeset = u'123456'
         url = poller._make_url()
@@ -122,9 +121,9 @@ fakeLocalesFile = """/l10n-central/af/
 /l10n-central/zh-TW/"""
 
 
-class FakeHgAllLocalesPoller(HgAllLocalesPoller):
+class FakeHgAllLocalesPoller(hgpoller.HgAllLocalesPoller):
     def __init__(self):
-        HgAllLocalesPoller.__init__(
+        hgpoller.HgAllLocalesPoller.__init__(
             self, hgURL='fake', repositoryIndex='fake', branch='fake')
 
     def pollNextLocale(self):
@@ -183,16 +182,16 @@ class TestPolling(unittest.TestCase):
 
     def testHgPoller(self):
         url = 'http://localhost:%s' % str(self.server.port)
-        return self.doPollingTest(HgPoller, hgURL=url, branch='whatever')
+        return self.doPollingTest(hgpoller.HgPoller, hgURL=url, branch='whatever')
 
     def testHgLocalePoller(self):
         url = 'http://localhost:%s' % str(self.server.port)
-        return self.doPollingTest(HgLocalePoller, locale='fake', parent='fake',
+        return self.doPollingTest(hgpoller.HgLocalePoller, locale='fake', parent='fake',
                                   hgURL=url, branch='whatever')
 
     def testHgAllLocalesPoller(self):
         url = 'http://localhost:%s' % str(self.server.port)
-        return self.doPollingTest(HgAllLocalesPoller, hgURL=url,
+        return self.doPollingTest(hgpoller.HgAllLocalesPoller, hgURL=url,
                                   repositoryIndex='foobar')
 
 
@@ -277,7 +276,7 @@ malformedPushlog = """
 
 class PushlogParsing(unittest.TestCase):
     def testValidPushlog(self):
-        pushes = _parse_changes(validPushlog)
+        pushes = hgpoller._parse_changes(validPushlog)
         self.failUnlessEqual(len(pushes), 2)
 
         self.failUnlessEqual(pushes[0]['changesets'][0]['node'],
@@ -308,10 +307,10 @@ class PushlogParsing(unittest.TestCase):
 
     def testMalformedPushlog(self):
         self.failUnlessRaises(
-            JSONDecodeError, _parse_changes, malformedPushlog)
+            JSONDecodeError, hgpoller._parse_changes, malformedPushlog)
 
     def testEmptyPushlog(self):
-        self.failUnlessRaises(JSONDecodeError, _parse_changes, "")
+        self.failUnlessRaises(JSONDecodeError, hgpoller._parse_changes, "")
 
 
 class RepoBranchHandling(unittest.TestCase):
@@ -321,9 +320,9 @@ class RepoBranchHandling(unittest.TestCase):
     def doTest(self, repo_branch):
         changes = self.changes
 
-        class TestPoller(BaseHgPoller):
+        class TestPoller(hgpoller.BaseHgPoller):
             def __init__(self):
-                BaseHgPoller.__init__(self, 'http://localhost', 'whatever',
+                hgpoller.BaseHgPoller.__init__(self, 'http://localhost', 'whatever',
                                       repo_branch=repo_branch)
                 self.emptyRepo = True
 
@@ -371,9 +370,9 @@ class MaxChangesHandling(unittest.TestCase):
     def doTest(self, repo_branch, maxChanges, mergePushChanges):
         changes = self.changes
 
-        class TestPoller(BaseHgPoller):
+        class TestPoller(hgpoller.BaseHgPoller):
             def __init__(self):
-                BaseHgPoller.__init__(self, 'http://localhost', 'whatever',
+                hgpoller.BaseHgPoller.__init__(self, 'http://localhost', 'whatever',
                                       repo_branch=repo_branch, maxChanges=maxChanges, mergePushChanges=mergePushChanges)
                 self.emptyRepo = True
 
