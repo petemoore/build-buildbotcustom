@@ -1,5 +1,6 @@
 from twisted.trial import unittest
 import threading
+import socket
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 
 from buildbot.util import json
@@ -26,21 +27,36 @@ class VerySimpleHTTPRequestHandler(BaseHTTPRequestHandler):
         pass
 
 
-def startHTTPServer(contents):
-    # Starts up a simple HTTPServer that processes requests with
-    # VerySimpleHTTPRequestHandler (subclassed to make sure it's unique
-    # for each instance), and serving the contents passed as contents
-    # Returns a tuple containing the HTTPServer instance and the port it is
-    # listening on. The caller is responsible for shutting down the HTTPServer.
-    class OurHandler(VerySimpleHTTPRequestHandler):
-        pass
-    OurHandler.contents = contents
-    server = HTTPServer(('', 0), OurHandler)
-    ip, port = server.server_address
-    server_thread = threading.Thread(target=server.serve_forever)
-    server_thread.setDaemon(True)
-    server_thread.start()
-    return (server, port)
+class TestHTTPServer(object):
+
+    def __init__(self, contents):
+        # Starts up a simple HTTPServer that processes requests with
+        # VerySimpleHTTPRequestHandler (subclassed to make sure it's unique for
+        # each instance), and serving the contents passed as contents 
+        class OurHandler(VerySimpleHTTPRequestHandler):
+            pass
+        OurHandler.contents = contents
+        server = HTTPServer(('', 0), OurHandler)
+        ip, port = server.server_address
+        def serve_forever_and_catch():
+            try:
+                server.serve_forever()
+            except socket.error:
+                pass
+        server_thread = threading.Thread(target=serve_forever_and_catch)
+        server_thread.setDaemon(True)
+        server_thread.start()
+
+        self.server = server
+        self.server_thread = server_thread
+        self.port = port
+
+    def stop(self):
+        # This is ugly.  There's a running thread waiting on a socket.  The
+        # call to server_stop here closes that socket, which results in a
+        # socket error in the thread, which we catch and then exit.
+        self.server.server_close()
+        self.server_thread.join()
 
 
 class UrlCreation(unittest.TestCase):
@@ -127,12 +143,10 @@ class RepositoryIndexParsing(unittest.TestCase):
 
 class TestPolling(unittest.TestCase):
     def setUp(self):
-        self.server, self.portnum = startHTTPServer('testcontents')
+        x = self.server = TestHTTPServer('testcontents')
 
     def tearDown(self):
-        self.server.server_close()
-        self.portnum = None
-        self.server = None
+        self.server.stop()
 
     def success(self, res):
         self.failUnless(self.fp.success)
@@ -168,16 +182,16 @@ class TestPolling(unittest.TestCase):
         return d
 
     def testHgPoller(self):
-        url = 'http://localhost:%s' % str(self.portnum)
+        url = 'http://localhost:%s' % str(self.server.port)
         return self.doPollingTest(HgPoller, hgURL=url, branch='whatever')
 
     def testHgLocalePoller(self):
-        url = 'http://localhost:%s' % str(self.portnum)
+        url = 'http://localhost:%s' % str(self.server.port)
         return self.doPollingTest(HgLocalePoller, locale='fake', parent='fake',
                                   hgURL=url, branch='whatever')
 
     def testHgAllLocalesPoller(self):
-        url = 'http://localhost:%s' % str(self.portnum)
+        url = 'http://localhost:%s' % str(self.server.port)
         return self.doPollingTest(HgAllLocalesPoller, hgURL=url,
                                   repositoryIndex='foobar')
 
