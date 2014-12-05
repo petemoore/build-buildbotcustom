@@ -121,20 +121,22 @@ fakeLocalesFile = """/l10n-central/af/
 /l10n-central/zh-TW/"""
 
 
-class FakeHgAllLocalesPoller(hgpoller.HgAllLocalesPoller):
-    def __init__(self):
-        hgpoller.HgAllLocalesPoller.__init__(
-            self, hgURL='fake', repositoryIndex='fake', branch='fake')
-
-    def pollNextLocale(self):
-        pass
-
-
 class RepositoryIndexParsing(unittest.TestCase):
     def testRepositoryIndexParsing(self):
         correctLocales = [('af', 'l10n-central'), ('be', 'l10n-central'),
                           ('de', 'l10n-central'), ('hi', 'l10n-central'),
                           ('kk', 'l10n-central'), ('zh-TW', 'l10n-central')]
+        # this must be defined inline, because the `hgpoller` module gets dynamically
+        # reloaded via the `misc` module.
+        class FakeHgAllLocalesPoller(hgpoller.HgAllLocalesPoller):
+            def __init__(self):
+                hgpoller.HgAllLocalesPoller.__init__(
+                    self, hgURL='fake', repositoryIndex='fake', branch='fake')
+
+            def pollNextLocale(self):
+                pass
+
+
         poller = FakeHgAllLocalesPoller()
         poller.processData(fakeLocalesFile)
         self.failUnlessEqual(poller.pendingLocales, correctLocales)
